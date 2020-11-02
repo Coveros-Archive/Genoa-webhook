@@ -1,0 +1,53 @@
+VERSION ?= 0.1.0
+# Image URL to use all building/pushing image targets
+IMG ?= coveros/genoa-webhook:${VERSION}
+
+
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
+
+all: manager
+
+# Run tests
+test: fmt vet
+	# sudo because release controller has to download a chart and read into memory, so it needs permissions to read on envtest
+	sudo go test -v ./... -coverprofile cover.out
+
+# Build webhook binary
+manager: fmt vet
+	go build -o bin/genoa-webhook main.go
+
+# Run against the configured Kubernetes cluster in ~/.kube/config
+run: fmt vet
+	go run ./main.go
+
+# Run go fmt against code
+fmt:
+	go fmt ./...
+
+# Run go vet against code
+vet:
+	go vet ./...
+
+mody-tidy:
+	go mod tidy
+
+# Build the docker image
+docker-build:
+	docker build . -t ${IMG}
+
+# Push the docker image
+docker-push:
+	docker push ${IMG}
+
+local-build: mody-tidy vet fmt docker-build
+
+build: local-build docker-push
+
+deploy-chart:
+	kubectl create ns genoa || true
+	helm upgrade genoa charts/genoa-webhook --install --namespace=genoa --set deployments.genoaWebhook.image.tag=${VERSION}
