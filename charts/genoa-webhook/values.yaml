@@ -60,10 +60,6 @@ config:
     # if you are hosting your own gitlab, provide your hosted gitlab url
     selfHostedUrl: ""
 
-## because k8s client inside operator would need freedom to install releases in all namespces
-## TODO: narrow this down to only helmRelease installs
-clusterRole: cluster-admin
-
 
 serviceAccount:
   annotations: {}
