@@ -10,15 +10,14 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-all: manager
+all: build-binary
 
 # Run tests
 test: fmt vet
-	# sudo because release controller has to download a chart and read into memory, so it needs permissions to read on envtest
-	sudo go test -v ./... -coverprofile cover.out
+	go test -v ./... -coverprofile cover.out
 
 # Build webhook binary
-manager: fmt vet
+build-binary: fmt vet
 	go build -o bin/genoa-webhook main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
