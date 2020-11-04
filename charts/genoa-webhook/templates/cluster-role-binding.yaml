@@ -8,5 +8,5 @@ subjects:
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: {{ .Values.clusterRole }}
+  name: {{ include "genoa-webhook.fullname" . }}
   apiGroup: rbac.authorization.k8s.io
