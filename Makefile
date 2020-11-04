@@ -50,4 +50,4 @@ build: local-build docker-push
 
 deploy-chart:
 	kubectl create ns genoa || true
-	helm upgrade genoa charts/genoa-webhook --install --namespace=genoa --set deployments.genoaWebhook.image.tag=${VERSION}
+	helm upgrade genoa-webhook charts/genoa-webhook --install --namespace=genoa --set deployments.image.tag=${VERSION}

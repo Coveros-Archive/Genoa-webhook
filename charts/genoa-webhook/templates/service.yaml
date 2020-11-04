@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "genoa-webhook.fullname" . }}
+  labels:
+    {{- include "genoa-webhook.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http
+  selector:
+    {{- include "genoa-webhook.selectorLabels" . | nindent 4 }}

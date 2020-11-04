@@ -1,0 +1,81 @@
+
+
+nameOverride: ""
+fullnameOverride: ""
+
+deployment:
+  labels: {}
+  annotations: {}
+  podLabels: {}
+  volumes: []
+  volumeMounts: []
+  initContainers: []
+  podAnnotations: {}
+  podSecurityContext: {}
+  replicaCount: 1
+  imagePullSecrets: []
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  envVars: []
+  livenessProbe:
+    httpGet:
+      port: 8081
+      path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 10
+    successThreshold: 1
+    failureThreshold: 3
+  image:
+    repository: coveros/genoa-webhook
+    pullPolicy: Always
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: 0.1.0
+
+
+config:
+  notification:
+    enabled: false
+    provider: "slack" ## slack is the only provider supported at the moment.
+    defaultChannelID: ""
+  #token: ""
+  github:
+    enabled: false
+    deployDir: deploy/
+    ## you can generate webhookSecret using $ ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'
+    ## set that value here and also set the same value in your github webhook configuration(s)
+    webhookSecret: ""
+    accessToken: ""
+    ## if you are using github enterprise, provide the github enterprise url
+    #selfHostedUrl: ""
+  gitlab:
+    enabled: false
+    deployDir: deploy/
+    #you can generate webhookSecret using $ ruby -rsecurerandom -e 'puts SecureRandom.hex(20)'
+    #set that value here and also set the same value in your gitlab webhook configuration(s)
+    webhookSecret: ""
+    accessToken: ""
+    # if you are hosting your own gitlab, provide your hosted gitlab url
+    selfHostedUrl: ""
+
+## because k8s client inside operator would need freedom to install releases in all namespces
+## TODO: narrow this down to only helmRelease installs
+clusterRole: cluster-admin
+
+
+serviceAccount:
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+ingress:
+  enabled: false
+  labels: {}
+  annotations: {}
+   #kubernetes.io/ingress.class: nginx
+   #kubernetes.io/tls-acme: "true"
+  host: genoa.foo.com
+  tls: []

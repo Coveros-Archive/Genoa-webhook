@@ -74,9 +74,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 		wH.Logger.Info(fmt.Sprintf("Delete %v release from cluster initiated...", hrFromGit.GetName()))
 		wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
 			Channel:   notificationChannel,
-			Title:     ":interrobang:" + namespacedName,
+			Title:     namespacedName,
 			EventType: cNotifyLib.Warning,
 			Fields: map[string]string{
+				"Component":    "Genoa-webhook",
 				"Reason":       "Delete release from cluster initiated",
 				"Git-Source":   ownerRepoBranch,
 				"Release-File": releaseFile,
@@ -100,6 +101,7 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 			Title:     namespacedName,
 			EventType: cNotifyLib.Failure,
 			Fields: map[string]string{
+				"Component":    "Genoa-webhook",
 				"Reason":       fmt.Sprintf("Failed to create release: %v", errCreatingHR),
 				"Git-Source":   ownerRepoBranch,
 				"Release-File": releaseFile,
@@ -109,9 +111,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 	wH.Logger.Info(fmt.Sprintf("Successfully created %v release in your cluster", namespacedName))
 	wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
 		Channel:   notificationChannel,
-		Title:     ":rocket:" + namespacedName,
+		Title:     namespacedName,
 		EventType: cNotifyLib.Success,
 		Fields: map[string]string{
+			"Component":    "Genoa-webhook",
 			"Reason":       "Successfully created release in your cluster",
 			"Git-Source":   ownerRepoBranch,
 			"Release-File": releaseFile,
@@ -132,6 +135,7 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 				Title:     namespacedName,
 				EventType: cNotifyLib.Failure,
 				Fields: map[string]string{
+					"Component":    "Genoa-webhook",
 					"Reason":       fmt.Sprintf("Failed to apply release from %v git repo: %v", ownerRepo, errUpdating),
 					"Git-Source":   ownerRepoBranch,
 					"Release-File": releaseFile,
@@ -143,9 +147,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 		wH.Logger.Info(fmt.Sprintf("Updated release from %v - %v", ownerRepo, namespacedName))
 		wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
 			Channel:   notificationChannel,
-			Title:     ":rocket:" + namespacedName,
+			Title:     namespacedName,
 			EventType: cNotifyLib.Success,
 			Fields: map[string]string{
+				"Component":    "Genoa-webhook",
 				"Reason":       "Successfully updated release in your cluster",
 				"Git-Source":   ownerRepoBranch,
 				"Release-File": releaseFile,
