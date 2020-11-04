@@ -6,8 +6,8 @@ rules:
   - apiGroups:
       - coveros.apps.com
     resources:
-      - Releases
-      - Releases/status
+      - releases
+      - releases/status
     verbs:
       - create
       - delete
@@ -19,6 +19,8 @@ rules:
   - apiGroups:
       - ""
     resources:
-      - Namespaces
+      - namespaces
     verbs:
       - create
+      - get
+      - list
