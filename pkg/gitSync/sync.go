@@ -49,8 +49,8 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 	notificationChannel := utils.GetChannelIDForNotification(hrFromGit.ObjectMeta)
 	namespacedName := fmt.Sprintf("%s/%s", hrFromGit.GetNamespace(), hrFromGit.GetName())
 	ownerRepoBranch := fmt.Sprintf("%v@%v", ownerRepo, branch)
-	notifyFields := utils.NotifyFields{Channel:notificationChannel, Repo:ownerRepoBranch, File:releaseFile}
-	logAndNotify := utils.LogAndNotify{NofityInterface: wH.Notify,Logger: wH.Logger}
+	notifyFields := utils.NotifyFields{Channel: notificationChannel, Repo: ownerRepoBranch, File: releaseFile}
+	logNotify := utils.LogAndNotify{NofityInterface: wH.Notify, Logger: wH.Logger}
 
 	// if GitBranchToFollowAnnotation is specified, we ONLY create/update CR's if the current source branch is the same as GitBranchToFollow
 	// this way users can have same CR's exist on many branches but only apply updates from the GitBranchToFollow
@@ -68,10 +68,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 				wH.Logger.Info(fmt.Sprintf("%v/%v release not found, skipping clean up..", hrFromGit.GetNamespace(), hrFromGit.GetName()))
 				return
 			}
-			logAndNotify.LogAndNotify(err, notifyFields.WithMessage("Failed to delete Release which was removed from github"))
+			logNotify.LogAndNotify(err, notifyFields.WithMessage("Failed to delete Release which was removed from github"))
 			return
 		}
-		logAndNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Delete %v release from cluster initiated...", hrFromGit.GetName())))
+		logNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Delete %v release from cluster initiated...", hrFromGit.GetName())))
 		return
 	}
 
@@ -84,10 +84,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 	wH.Logger.Info(fmt.Sprintf("Creating %v/%v release", hrFromGit.GetNamespace(), hrFromGit.GetName()))
 	hrFromCluster, errCreatingHR := utils.CreateRelease(hrFromGit, wH.Client)
 	if errCreatingHR != nil {
-		logAndNotify.LogAndNotify(errCreatingHR, notifyFields.WithMessage(fmt.Sprintf("%v failed to create release : %v", namespacedName, errCreatingHR)))
+		logNotify.LogAndNotify(errCreatingHR, notifyFields.WithMessage(fmt.Sprintf("%v failed to create release : %v", namespacedName, errCreatingHR)))
 	}
 
-	logAndNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Successfully created %v release in your cluster", namespacedName)))
+	logNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Successfully created %v release in your cluster", namespacedName)))
 
 	specInSync := reflect.DeepEqual(hrFromCluster.Spec, hrFromGit.Spec)
 	labelsInSync := reflect.DeepEqual(hrFromCluster.GetLabels(), hrFromGit.GetLabels())
@@ -97,12 +97,12 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 		hrFromCluster.SetLabels(hrFromGit.GetLabels())
 		hrFromCluster.Spec = hrFromGit.Spec
 		if errUpdating := wH.Client.Update(context.TODO(), hrFromCluster); errUpdating != nil {
-			notifyFields.Msg =  fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)
-			logAndNotify.LogAndNotify(errUpdating, notifyFields.WithMessage(fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)))
+			notifyFields.Msg = fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)
+			logNotify.LogAndNotify(errUpdating, notifyFields.WithMessage(fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)))
 			return
 		}
 
-		logAndNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Updated release from %v - %v", ownerRepo, namespacedName)))
+		logNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Updated release from %v - %v", ownerRepo, namespacedName)))
 	}
 
 }

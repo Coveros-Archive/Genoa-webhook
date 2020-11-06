@@ -77,18 +77,16 @@ func NewNotifier() cNotifyLib.Notify {
 	return cNotifyLib.NewNotificationProvider(getNotificationProvider(), getNotificationProviderToken())
 }
 
-
-
 type LogAndNotify struct {
-	Logger logr.Logger
+	Logger          logr.Logger
 	NofityInterface cNotifyLib.Notify
 }
 
 type NotifyFields struct {
-	Msg string
+	Msg     string
 	Channel string
-	Repo string
-	File string
+	Repo    string
+	File    string
 }
 
 func (n *NotifyFields) WithMessage(msg string) *NotifyFields {
@@ -96,8 +94,8 @@ func (n *NotifyFields) WithMessage(msg string) *NotifyFields {
 	return n
 }
 
-func (l LogAndNotify)LogAndNotify(err error, fields *NotifyFields) {
-	var eventType  = cNotifyLib.Success
+func (l LogAndNotify) LogAndNotify(err error, fields *NotifyFields) {
+	var eventType = cNotifyLib.Success
 	if err != nil {
 		l.Logger.Error(err, fields.Msg)
 		eventType = cNotifyLib.Failure
