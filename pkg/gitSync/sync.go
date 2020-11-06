@@ -6,7 +6,6 @@ import (
 	"github.com/agill17/go-scm/scm"
 	utils "github.com/coveros/genoa-webhook/pkg"
 	"github.com/coveros/genoa/api/v1alpha1"
-	cNotifyLib "github.com/coveros/notification-library"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"reflect"
@@ -48,9 +47,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 	}
 
 	notificationChannel := utils.GetChannelIDForNotification(hrFromGit.ObjectMeta)
-
 	namespacedName := fmt.Sprintf("%s/%s", hrFromGit.GetNamespace(), hrFromGit.GetName())
 	ownerRepoBranch := fmt.Sprintf("%v@%v", ownerRepo, branch)
+	notifyFields := utils.NotifyFields{Channel: notificationChannel, Repo: ownerRepoBranch, File: releaseFile}
+	logNotify := utils.LogAndNotify{NofityInterface: wH.Notify, Logger: wH.Logger}
 
 	// if GitBranchToFollowAnnotation is specified, we ONLY create/update CR's if the current source branch is the same as GitBranchToFollow
 	// this way users can have same CR's exist on many branches but only apply updates from the GitBranchToFollow
@@ -68,21 +68,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 				wH.Logger.Info(fmt.Sprintf("%v/%v release not found, skipping clean up..", hrFromGit.GetNamespace(), hrFromGit.GetName()))
 				return
 			}
-			wH.Logger.Error(err, "Failed to delete Release which was removed from github")
+			logNotify.LogAndNotify(err, notifyFields.WithMessage("Failed to delete Release which was removed from github"))
 			return
 		}
-		wH.Logger.Info(fmt.Sprintf("Delete %v release from cluster initiated...", hrFromGit.GetName()))
-		wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
-			Channel:   notificationChannel,
-			Title:     namespacedName,
-			EventType: cNotifyLib.Warning,
-			Fields: map[string]string{
-				"Component":    "Genoa-webhook",
-				"Reason":       "Delete release from cluster initiated",
-				"Git-Source":   ownerRepoBranch,
-				"Release-File": releaseFile,
-			},
-		})
+		logNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Delete %v release from cluster initiated...", hrFromGit.GetName())))
 		return
 	}
 
@@ -95,31 +84,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 	wH.Logger.Info(fmt.Sprintf("Creating %v/%v release", hrFromGit.GetNamespace(), hrFromGit.GetName()))
 	hrFromCluster, errCreatingHR := utils.CreateRelease(hrFromGit, wH.Client)
 	if errCreatingHR != nil {
-		wH.Logger.Info(fmt.Sprintf("%v failed to create release : %v", namespacedName, errCreatingHR))
-		wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
-			Channel:   notificationChannel,
-			Title:     namespacedName,
-			EventType: cNotifyLib.Failure,
-			Fields: map[string]string{
-				"Component":    "Genoa-webhook",
-				"Reason":       fmt.Sprintf("Failed to create release: %v", errCreatingHR),
-				"Git-Source":   ownerRepoBranch,
-				"Release-File": releaseFile,
-			},
-		})
+		logNotify.LogAndNotify(errCreatingHR, notifyFields.WithMessage(fmt.Sprintf("%v failed to create release : %v", namespacedName, errCreatingHR)))
 	}
-	wH.Logger.Info(fmt.Sprintf("Successfully created %v release in your cluster", namespacedName))
-	wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
-		Channel:   notificationChannel,
-		Title:     namespacedName,
-		EventType: cNotifyLib.Success,
-		Fields: map[string]string{
-			"Component":    "Genoa-webhook",
-			"Reason":       "Successfully created release in your cluster",
-			"Git-Source":   ownerRepoBranch,
-			"Release-File": releaseFile,
-		},
-	})
+
+	logNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Successfully created %v release in your cluster", namespacedName)))
 
 	specInSync := reflect.DeepEqual(hrFromCluster.Spec, hrFromGit.Spec)
 	labelsInSync := reflect.DeepEqual(hrFromCluster.GetLabels(), hrFromGit.GetLabels())
@@ -129,33 +97,12 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 		hrFromCluster.SetLabels(hrFromGit.GetLabels())
 		hrFromCluster.Spec = hrFromGit.Spec
 		if errUpdating := wH.Client.Update(context.TODO(), hrFromCluster); errUpdating != nil {
-			wH.Logger.Error(errUpdating, fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName))
-			wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
-				Channel:   notificationChannel,
-				Title:     namespacedName,
-				EventType: cNotifyLib.Failure,
-				Fields: map[string]string{
-					"Component":    "Genoa-webhook",
-					"Reason":       fmt.Sprintf("Failed to apply release from %v git repo: %v", ownerRepo, errUpdating),
-					"Git-Source":   ownerRepoBranch,
-					"Release-File": releaseFile,
-				},
-			})
+			notifyFields.Msg = fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)
+			logNotify.LogAndNotify(errUpdating, notifyFields.WithMessage(fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)))
 			return
 		}
 
-		wH.Logger.Info(fmt.Sprintf("Updated release from %v - %v", ownerRepo, namespacedName))
-		wH.Notify.SendMsg(cNotifyLib.NotifyTemplate{
-			Channel:   notificationChannel,
-			Title:     namespacedName,
-			EventType: cNotifyLib.Success,
-			Fields: map[string]string{
-				"Component":    "Genoa-webhook",
-				"Reason":       "Successfully updated release in your cluster",
-				"Git-Source":   ownerRepoBranch,
-				"Release-File": releaseFile,
-			},
-		})
+		logNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Updated release from %v - %v", ownerRepo, namespacedName)))
 	}
 
 }
