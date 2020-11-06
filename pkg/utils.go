@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/coveros/genoa/api/v1alpha1"
 	cNotifyLib "github.com/coveros/notification-library"
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,4 +75,38 @@ func getNotificationProviderToken() string {
 
 func NewNotifier() cNotifyLib.Notify {
 	return cNotifyLib.NewNotificationProvider(getNotificationProvider(), getNotificationProviderToken())
+}
+
+type LogAndNotify struct {
+	Logger logr.Logger
+	NofityInterface cNotifyLib.Notify
+}
+
+type NotifyFields struct {
+	Msg string
+	Channel string
+	Repo string
+	File string
+}
+
+func (l LogAndNotify)LogAndNotify(err error, fields NotifyFields) {
+	var eventType  = cNotifyLib.Success
+	if err != nil {
+		l.Logger.Error(err, fields.Msg)
+		eventType = cNotifyLib.Failure
+	} else {
+		l.Logger.Info(fields.Msg)
+	}
+
+	l.NofityInterface.SendMsg(cNotifyLib.NotifyTemplate{
+		Channel:   fields.Channel,
+		Title:     fields.Msg,
+		EventType: eventType,
+		Fields: map[string]string{
+			"Component":    "Genoa-webhook",
+			"Reason":       fields.Msg,
+			"Git-Source":   fields.Repo,
+			"Release-File": fields.File,
+		}})
+	
 }
