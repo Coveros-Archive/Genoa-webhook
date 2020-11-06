@@ -68,12 +68,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 				wH.Logger.Info(fmt.Sprintf("%v/%v release not found, skipping clean up..", hrFromGit.GetNamespace(), hrFromGit.GetName()))
 				return
 			}
-			notifyFields.Msg = "Failed to delete Release which was removed from github"
-			logAndNotify.LogAndNotify(err, notifyFields)
+			logAndNotify.LogAndNotify(err, notifyFields.WithMessage("Failed to delete Release which was removed from github"))
 			return
 		}
-		notifyFields.Msg = fmt.Sprintf("Delete %v release from cluster initiated...", hrFromGit.GetName())
-		logAndNotify.LogAndNotify(nil, notifyFields)
+		logAndNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Delete %v release from cluster initiated...", hrFromGit.GetName())))
 		return
 	}
 
@@ -86,12 +84,10 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 	wH.Logger.Info(fmt.Sprintf("Creating %v/%v release", hrFromGit.GetNamespace(), hrFromGit.GetName()))
 	hrFromCluster, errCreatingHR := utils.CreateRelease(hrFromGit, wH.Client)
 	if errCreatingHR != nil {
-		notifyFields.Msg = fmt.Sprintf("%v failed to create release : %v", namespacedName, errCreatingHR)
-		logAndNotify.LogAndNotify(errCreatingHR, notifyFields)
+		logAndNotify.LogAndNotify(errCreatingHR, notifyFields.WithMessage(fmt.Sprintf("%v failed to create release : %v", namespacedName, errCreatingHR)))
 	}
 
-	notifyFields.Msg = fmt.Sprintf("Successfully created %v release in your cluster", namespacedName)
-	logAndNotify.LogAndNotify(nil, notifyFields)
+	logAndNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Successfully created %v release in your cluster", namespacedName)))
 
 	specInSync := reflect.DeepEqual(hrFromCluster.Spec, hrFromGit.Spec)
 	labelsInSync := reflect.DeepEqual(hrFromCluster.GetLabels(), hrFromGit.GetLabels())
@@ -102,12 +98,11 @@ func (wH WebhookHandler) syncReleaseWithGithub(ownerRepo, branch, SHA, releaseFi
 		hrFromCluster.Spec = hrFromGit.Spec
 		if errUpdating := wH.Client.Update(context.TODO(), hrFromCluster); errUpdating != nil {
 			notifyFields.Msg =  fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)
-			logAndNotify.LogAndNotify(errUpdating, notifyFields)
+			logAndNotify.LogAndNotify(errUpdating, notifyFields.WithMessage(fmt.Sprintf("Failed to apply release from %v - %v", ownerRepo, namespacedName)))
 			return
 		}
 
-		notifyFields.Msg =  fmt.Sprintf("Updated release from %v - %v", ownerRepo, namespacedName)
-		logAndNotify.LogAndNotify(nil, notifyFields)
+		logAndNotify.LogAndNotify(nil, notifyFields.WithMessage(fmt.Sprintf("Updated release from %v - %v", ownerRepo, namespacedName)))
 	}
 
 }

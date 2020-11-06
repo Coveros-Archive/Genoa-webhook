@@ -77,6 +77,8 @@ func NewNotifier() cNotifyLib.Notify {
 	return cNotifyLib.NewNotificationProvider(getNotificationProvider(), getNotificationProviderToken())
 }
 
+
+
 type LogAndNotify struct {
 	Logger logr.Logger
 	NofityInterface cNotifyLib.Notify
@@ -89,7 +91,12 @@ type NotifyFields struct {
 	File string
 }
 
-func (l LogAndNotify)LogAndNotify(err error, fields NotifyFields) {
+func (n *NotifyFields) WithMessage(msg string) *NotifyFields {
+	n.Msg = msg
+	return n
+}
+
+func (l LogAndNotify)LogAndNotify(err error, fields *NotifyFields) {
 	var eventType  = cNotifyLib.Success
 	if err != nil {
 		l.Logger.Error(err, fields.Msg)
@@ -108,5 +115,5 @@ func (l LogAndNotify)LogAndNotify(err error, fields NotifyFields) {
 			"Git-Source":   fields.Repo,
 			"Release-File": fields.File,
 		}})
-	
+
 }
